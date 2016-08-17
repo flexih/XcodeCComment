@@ -17,14 +17,15 @@ enum CommentStatus {
 
 class SourceEditorCommand: NSObject, XCSourceEditorCommand {
     
-    func perform(with invocation: XCSourceEditorCommandInvocation, completionHandler: (Error?) -> Swift.Void ) {
+    func perform(with invocation: XCSourceEditorCommandInvocation, completionHandler: @escaping (Error?) -> Swift.Void ) {
         
         let buffer = invocation.buffer
         let selections = buffer.selections
         
-        selections.forEach { range in
+        selections.forEach {
+            let range = $0 as! XCSourceTextRange
             if range.start.line == range.end.line && range.start.column == range.end.column {
-                let fake: XCSourceTextRange = range as! XCSourceTextRange
+                let fake: XCSourceTextRange = range
                 let lineText = buffer.lines[fake.start.line] as! String
                 
                 fake.start.column = 0
@@ -36,7 +37,7 @@ class SourceEditorCommand: NSObject, XCSourceEditorCommand {
                 
             } else {
                 
-                handle(range: range as! XCSourceTextRange, inBuffer: buffer)
+                handle(range: range, inBuffer: buffer)
             }
         }
         
