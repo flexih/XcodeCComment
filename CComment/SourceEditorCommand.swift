@@ -15,6 +15,11 @@ enum CommentStatus {
     case Pair(range: NSRange)
 }
 
+fileprivate struct Constants {
+    static let startSymbol = "/*"
+    static let endSymbol = "*/"
+}
+
 class SourceEditorCommand: NSObject, XCSourceEditorCommand {
     
     func perform(with invocation: XCSourceEditorCommandInvocation, completionHandler: @escaping (Error?) -> Swift.Void ) {
@@ -47,19 +52,33 @@ class SourceEditorCommand: NSObject, XCSourceEditorCommand {
     func handle(range: XCSourceTextRange, inBuffer buffer: XCSourceTextBuffer) -> () {
         let selectedText = text(inRange: range, inBuffer: buffer)
         let status = selectedText.commentStatus
+        let startSymbolLength = Constants.startSymbol.characters.count
+        let endSymbolLength = Constants.endSymbol.characters.count
         
         switch status {
         case .Unpair:
             break
         case .Plain:
-            insert(position: range.end, length: 1, with: "*/", inBuffer: buffer)
-            insert(position: range.start, length: 0, with: "/*", inBuffer: buffer)
+            insert(position: range.end, with: Constants.endSymbol, inBuffer: buffer)
+            insert(position: range.start, with: Constants.startSymbol, inBuffer: buffer)
+            
+            // Fix selection
+            let sameLine = range.start.line == range.end.line
+            let offset = sameLine ? startSymbolLength + endSymbolLength : endSymbolLength
+            offsetSelection(range, by: offset)
         case .Pair(let commentedRange):
             let startPair = position(range.start, offsetBy: commentedRange.location, inBuffer: buffer)
             let endPair = position(range.start, offsetBy: commentedRange.location + commentedRange.length, inBuffer: buffer)
             
-            replace(position: endPair, length: -("*/".characters.count), with: "", inBuffer: buffer)
-            replace(position: startPair, length: "/*".characters.count, with: "", inBuffer: buffer)
+            replace(position: endPair, length: -endSymbolLength, with: "", inBuffer: buffer)
+            replace(position: startPair, length: startSymbolLength, with: "", inBuffer: buffer)
+            
+            // Fix selection
+            range.start = startPair
+            range.end = endPair
+            let sameLine = range.start.line == range.end.line
+            let offset = sameLine ? startSymbolLength + endSymbolLength : endSymbolLength
+            offsetSelection(range, by: -offset)
         }
     }
     
@@ -128,10 +147,10 @@ class SourceEditorCommand: NSObject, XCSourceEditorCommand {
         buffer.lines[position.line] = lineText
     }
     
-    func insert(position: XCSourceTextPosition, length: Int, with newElements: String, inBuffer buffer: XCSourceTextBuffer) {
+    func insert(position: XCSourceTextPosition, with newElements: String, inBuffer buffer: XCSourceTextBuffer) {
         var lineText = buffer.lines[position.line] as! String
         
-        var start = lineText.index(lineText.startIndex, offsetBy: position.column + length)
+        var start = lineText.index(lineText.startIndex, offsetBy: position.column)
         
         if start >= lineText.endIndex {
             start = lineText.index(before: lineText.endIndex)
@@ -141,6 +160,10 @@ class SourceEditorCommand: NSObject, XCSourceEditorCommand {
         lineText.remove(at: lineText.index(before: lineText.endIndex)) //remove end "\n"
         
         buffer.lines[position.line] = lineText
+    }
+    
+    func offsetSelection(_ selection: XCSourceTextRange, by offset: Int) {
+        selection.end.column += offset
     }
     
 }
