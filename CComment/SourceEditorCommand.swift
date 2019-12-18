@@ -87,7 +87,7 @@ class SourceEditorCommand: NSObject, XCSourceEditorCommand {
             let lineText = buffer.lines[textRange.start.line] as! String
             let from = lineText.index(lineText.startIndex, offsetBy: textRange.start.column)
             let to = lineText.index(lineText.startIndex, offsetBy: textRange.end.column)
-            return String(lineText[from...to])
+            return String(lineText[from..<to])
         }
         
         var text = ""
@@ -99,7 +99,7 @@ class SourceEditorCommand: NSObject, XCSourceEditorCommand {
             case textRange.start.line:
                 text += lineText[lineText.index(lineText.startIndex, offsetBy: textRange.start.column)...]
             case textRange.end.line:
-                text += lineText[...lineText.index(lineText.startIndex, offsetBy: textRange.end.column)]
+                text += lineText[..<lineText.index(lineText.startIndex, offsetBy: textRange.end.column)]
             default:
                 text += lineText
             }
