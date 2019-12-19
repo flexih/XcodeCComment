@@ -52,8 +52,8 @@ class SourceEditorCommand: NSObject, XCSourceEditorCommand {
     func handle(range: XCSourceTextRange, inBuffer buffer: XCSourceTextBuffer) -> () {
         let selectedText = text(inRange: range, inBuffer: buffer)
         let status = selectedText.commentStatus
-        let startSymbolLength = Constants.startSymbol.characters.count
-        let endSymbolLength = Constants.endSymbol.characters.count
+        let startSymbolLength = Constants.startSymbol.count
+        let endSymbolLength = Constants.endSymbol.count
         
         switch status {
         case .Unpair:
@@ -87,7 +87,7 @@ class SourceEditorCommand: NSObject, XCSourceEditorCommand {
             let lineText = buffer.lines[textRange.start.line] as! String
             let from = lineText.index(lineText.startIndex, offsetBy: textRange.start.column)
             let to = lineText.index(lineText.startIndex, offsetBy: textRange.end.column)
-            return lineText[from...to]
+            return String(lineText[from..<to])
         }
         
         var text = ""
@@ -97,9 +97,9 @@ class SourceEditorCommand: NSObject, XCSourceEditorCommand {
             
             switch aLine {
             case textRange.start.line:
-                text += lineText.substring(from: lineText.index(lineText.startIndex, offsetBy: textRange.start.column))
+                text += lineText[lineText.index(lineText.startIndex, offsetBy: textRange.start.column)...]
             case textRange.end.line:
-                text += lineText.substring(to: lineText.index(lineText.startIndex, offsetBy: textRange.end.column + 1))
+                text += lineText[..<lineText.index(lineText.startIndex, offsetBy: textRange.end.column)]
             default:
                 text += lineText
             }
@@ -114,7 +114,7 @@ class SourceEditorCommand: NSObject, XCSourceEditorCommand {
         var n = offsetBy
         
         repeat {
-            let aLineCount = (buffer.lines[aLine] as! String).characters.count
+            let aLineCount = (buffer.lines[aLine] as! String).count
             let leftInLine = aLineCount - aLineColumn
             
             if leftInLine <= n {
@@ -156,7 +156,7 @@ class SourceEditorCommand: NSObject, XCSourceEditorCommand {
             start = lineText.index(before: lineText.endIndex)
         }
         
-        lineText.insert(contentsOf: newElements.characters, at: start)
+        lineText.insert(contentsOf: newElements, at: start)
         lineText.remove(at: lineText.index(before: lineText.endIndex)) //remove end "\n"
         
         buffer.lines[position.line] = lineText
@@ -184,10 +184,10 @@ extension String {
     }
     
     var isUnpairCommented: Bool {
-        if let i = characters.index(of: "*") {
+        if let i = firstIndex(of: "*") {
             if i > startIndex && i < endIndex {
-                if characters[index(before: i)] == "/" ||
-                    characters[index(after: i)] == "/" {
+                if self[index(before: i)] == "/" ||
+                    self[index(after: i)] == "/" {
                     return true
                 }
             }
