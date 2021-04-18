@@ -185,7 +185,7 @@ extension String {
     
     var isUnpairCommented: Bool {
         if let i = firstIndex(of: "*") {
-            if i > startIndex && i < endIndex {
+            if i > startIndex && i < index(before: endIndex) {
                 if self[index(before: i)] == "/" ||
                     self[index(after: i)] == "/" {
                     return true
